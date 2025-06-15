@@ -22,6 +22,7 @@
 \usepackage[colorlinks=true,linkcolor=blue]{hyperref}	% For hyper links
 \usepackage{bbm}
 \usepackage[T1]{fontenc}
+\usepackage{lmodern}
 % For CJK usage
 \usepackage{CJKutf8} 
 \usepackage{ucs} 
@@ -340,7 +341,7 @@ With intent model $P(z^{(i)} \mid x^{(i)})$, a controllable language model can b
 P(y^{(i)} \mid x^{(i)}) = \sum_{z^{(i)}} P(y^{(i)} \mid x^{(i)}, z^{(i)}) \, P(z^{(i)} \mid x^{(i)}).
 \]
 
-To generate a message, there is a list of intent candidates where one is sampled through an intent model $P(z^{(i)} \mid x^{(i)})$, and others are sampled from piKL (which we will discuss next, Section~\ref{{sec:cicero_reason}}). piKL will assign high likelihood to (a) actions that the player likely to play given the dialogue, and (b) actions that are beneficial for the recipient. Therefore, the final intent will be selected considering human-like as well as suggesting \textit{better} moves for the recipient. 
+To generate a message, there is a list of intent candidates where one is sampled through an intent model $P(z^{(i)} \mid x^{(i)})$, and others are sampled from piKL (which we will discuss next, Section~\ref{sec:cicero_reason}). piKL will assign high likelihood to (a) actions that the player likely to play given the dialogue, and (b) actions that are beneficial for the recipient. Therefore, the final intent will be selected considering human-like as well as suggesting \textit{better} moves for the recipient. 
 
 Since language models generally suffer from hallucination or generate factually incorrect information, \cicero has a message filtering process that models as discriminators were trained and used at test-time to filter messages with mistakes. Note that there are more details of \cicero language model, we only cover important parts that would suffice for this thesis proposal.
 
@@ -428,6 +429,63 @@ where there is a wanting event, whose \texttt{ARG0} (wanter) is a boy, and whose
     \item The boy has a desire to be believed by the girl.
 \end{itemize}
 
+% HCA (hindsight credit assignment) and how it is used in our works
+\section{Hindsight Credit Assignment}
+\textbf{Hindsight Credit Assignment} (HCA) is a method to assign credit to actions in a sequence of decisions, especially in multi-agent settings like Diplomacy. It addresses the challenge of determining which actions contributed to an outcome, particularly when multiple agents are involved and their actions are interdependent.
+
+HCA is particularly useful in environments where actions have long-term consequences and the impact of a single action may not be immediately apparent. In Diplomacy, for example, a player's decision to form an alliance or betray another player can have cascading effects on the game's outcome, making it difficult to attribute success or failure to specific actions.
+
+\subsection{Motivating HCA in Diplomacy: A Formalism}
+
+To formalize the credit assignment problem in Diplomacy, we can model the game as a Markov Decision Process (MDP). Let's define the key components:
+
+\begin{itemize}
+    \item \textbf{State ($x$)}: A state represents the complete board position at a given time, including the locations of all units (armies and fleets), the ownership of all supply centers, and the current year and season.
+    \item \textbf{Action ($a$)}: An action is the set of orders a player submits for all their units during a specific turn.
+    \item \textbf{Policy ($\pi(a|x)$)}: A player's policy is their strategy, which is a probability distribution over all possible actions given the current state. $\pi(a|x)$ is the probability of taking action $a$ in state $x$.
+    \item \textbf{Trajectory ($\tau$)}: A trajectory is the sequence of states and actions that unfold over the course of a game, $\tau = (x_0, a_0, x_1, a_1, \dots)$.
+    \item \textbf{Return ($Z(\tau)$)}: The return is a measure of the outcome of the game for a player. This could be defined in various ways, such as the final number of supply centers controlled, the player's rank, or a binary win/loss signal.
+\end{itemize}
+
+The value of taking an action $a$ in a state $x$ is typically defined by the \textbf{action-value function}, $Q^{\pi}(x, a)$, which is the expected return after taking action $a$ and following policy $\pi$ thereafter:
+$$
+Q^{\pi}(x, a) = \mathbb{E}_{\tau \sim \mathcal{T}(x, a, \pi)}[Z(\tau)]
+$$
+
+The core challenge is estimating this value accurately. Traditional methods often struggle with the long-term and multi-agent dynamics of Diplomacy. HCA offers a different perspective by reframing the question from "what is the expected future outcome of this action?" to "given an outcome that happened, how relevant was a past action in causing it?"
+
+\subsection{HCA Formulations}
+
+HCA introduces a \textbf{hindsight distribution}, which is the conditional probability of having taken an action given a future outcome. We can formulate this in two main ways.
+
+\subsubsection{1. Conditioning on Future States}
+
+First, we can consider the relevance of an action to reaching a specific future board state. The \textbf{state-conditional hindsight distribution} is the probability that we took action $a_0$ at the start of a sequence, given that the game reached state $y$ at a later step $k$:
+$$
+h_k(a_0|x_0, \pi, y) = \mathbb{P}_{\tau \sim \mathcal{T}(x_0, \pi)}(A_0 = a_0 | X_k = y)
+$$
+
+Intuitively, if action $a_0$ was critical for reaching board state $y$, then $h_k(a_0|x_0, \pi, y) > \pi(a_0|x_0)$. Using this, we can rewrite the Q-function by re-weighting the rewards ($R_k$) obtained along a trajectory based on how relevant action $a_0$ was to reaching the corresponding state $X_k$:
+$$
+Q^{\pi}(x_0, a_0) = r(x_0, a_0) + \mathbb{E}_{\tau \sim \mathcal{T}(x_0, \pi)}\left[\sum_{k \ge 1} \gamma^k \frac{h_k(a_0|x_0, X_k)}{\pi(a_0|x_0)}R_k\right]
+$$
+
+This allows us to use a single game trajectory to update the values of all possible actions, not just the ones that were actually chosen. For instance, if a move into Belgium led to a strong position in France, we can give that move credit, even if the overall game was eventually lost due to later events.
+
+\subsubsection{2. Conditioning on Future Returns}
+
+Alternatively, we can condition directly on the final outcome of the game. The \textbf{return-conditional hindsight distribution} is the probability of having taken action $a$ given that the final return was $z$:
+$$
+h_z(a|x, \pi, z) = \mathbb{P}_{\tau \sim \mathcal{T}(x, \pi)}(A_0 = a | Z(\tau) = z)
+$$
+
+This directly measures how important an action was for achieving a certain result (e.g., winning the game). The \textbf{advantage} of an action, which measures how much better it is than the policy's average, can then be expressed as:
+$$
+A^{\pi}(x, a) = \mathbb{E}_{\tau \sim \mathcal{T}(x, a, \pi)}\left[\left(1 - \frac{\pi(a|x)}{h_z(a|x, Z(\tau))}\right)Z(\tau)\right]
+$$
+
+This formulation is particularly powerful. If an action makes a good outcome more likely (i.e., $h_z(a|x, z) > \pi(a|x)$), its advantage will be positive. If the action was irrelevant or detrimental, its advantage will be zero or negative. This helps to isolate the credit for specific strategic decisions, such as a key betrayal or a timely alliance, by linking them directly to their impact on the final result.
+% highlight for language space (difficulty and ideas)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -459,7 +517,91 @@ A board game that combines negotiation and strategy, Diplomacy serves as a right
 
 With these elements of strategy and negotiation of Diplomacy, \cicero, an AI agent is claimed to be \textit{superhuman}, surpassing human agents and has \textit{mastered Diplomacy}. Although this is a truly breakthrough, however, \cicero has been overclaimed since it is only showing that it is winning more than humans, while aspects of negotiations to form alliance, to persuade such moves that are beneficial for both parties or to deceive when breaking alliances, have not been well established. These communicative acts are necessary for mastering and enjoying Diplomacy and grounded in the state of the game (i.e. unit moves are mentioned within persuasive and deceptive messages). We see this opportunity to measure whether \cicero is human-level in both strategy and communication as claimed.
 
-\section{Intentions to Persuasion and Deception}
+\section{Diplomacy Requires Communication}
+
+
+In a landmark paper, \citet{meta2022human} introduce \cicero{}, an \abr{ai}
+that plays the game \textit{Diplomacy}.
+%
+The Washington Post claims ``the model is adept at negotiation and
+trickery''~\cite{washpost}, Forbes asserts ``\cicero{} was able to pass
+as a human player''~\citep{forbes}, and even the scientific publication's editor
+states \abr{ai} ``mastered
+\textit{Diplomacy}''~\citep{meta2022human}.
+%
+This work tests those popular perceptions to 
+rigorously evaluate the communicative and strategic capabilities of
+\cicero{}.
+%
+Our observations lead to insights about the current state of
+cooperation and communication in \abr{ai}, highlighting its deceptive
+and persuasive characteristics.
+%
+While \cicero{} plays strategically and with a verisimilitude of human
+communication, the evaluation in \citet{meta2022human} focuses only on
+if \cicero{} wins games.
+%
+As the name implies, \textit{Diplomacy} is revered by its devotees as
+a game of nuanced negotiation \citep{kraus1995designing}, convincing
+persuasion, and judicious betrayal.
+%
+We argue that \emph{mastering} \textit{Diplomacy} requires these
+communicative skills (Section~\ref{sec:background}).
+%
+Measuring persuasion, deception, and cooperation are open problems
+with no clear solution.  A boardgame constrains the world of actions
+to make these measurements feasible.
+%However, at the time of publication \cicero{} lacked the tools to measure effectively if it had mastered these aspects of the game.  
+%
+One contribution of this paper is to build measurements of these
+communicative skills and to evaluate the true state of \abr{ai} play
+in \textit{Diplomacy}.
+%
+
+However, a technical challenge to identifying persuasion and deception is
+mapping from communication to in-game actions (e.g., verifying that I follow through on a promise of helping you):
+%
+persuasion uses words to convince someone to do something,
+and deception is saying something to alter another's belief~\cite{chrisholm1977intent}.
+%RESOLVED \jbgcomment{can we add theory of deception cites?}
+%
+In both cases, we map and contrast communication to agents' actions.
+%RESOLVED \jbgcomment{Inconsistent section references.  If you want to switch up, use a macro.}
+
+To enable this mapping, we annotate messages from human games with
+abstract meaning
+representation~\citep[\abr{amr},][]{banarescu-etal-2013-abstract},
+which we use to train a grounded system to infer the goals of
+Diplomacy players (Section~\ref{sec:amr}).
+%
+After validating we can extract communicative intents, we use these
+representations to identify persuasion and deception
+(Section~\ref{sec:detection}).
+%
+We then remove some of \cicero{}'s communicative ability: 
+this does not impair its ability to win games.
+
+We then test \cicero{}'s skills in games against humans
+(Section~\ref{sec:human_comp_games}) while asking players to annotate if
+they think other players are an \abr{ai} and if a message is a lie.
+%
+Confirming earlier work, \cicero{} wins nearly every game, including
+against top players.
+%
+However, our new annotations provide a counterargument to the
+prevailing view that \cicero{} has mastered the communicative aspect of the game that is the priority of the \abr{nlp} community.
+%
+\cicero{} plays ``differently''; humans can reliably identify
+\cicero{} and it is less deceptive and persuasive to human players.
+%
+Communication from \cicero{} is more transactional, relying on its
+optimal strategy rather than the alliance building which is the hallmark of top human players.
+%
+\cicero{} has yet to prove effective in the communication skills which are crucial to achieving goals in strategic games and real life.
+
+In Section~\ref{sec:conc}, we discuss what it would take for a computer to truly master
+\textit{Diplomacy} and how  \textit{Diplomacy}'s intrinsic persuasion and deception can
+improve computers' ability to not just talk like a human but to realistically tie words to actions.
 
 \begin{figure*}[t]
     \centering
@@ -478,24 +620,246 @@ With these elements of strategy and negotiation of Diplomacy, \cicero, an AI age
 
 \end{figure*}
 
-Consider this in-game statement:
+%method and its goal
+\section{Grounding Messages Into  Intentions}
+
+
+\label{sec:amr}
+% \jbgcomment{I made up an example, would be nice if we could find a real one\dots}
+Consider this in-game statement made by England to Germany about a
+specific move-set (glosses added to locations):
 \begin{quote}
+    % I'm going to stand pat in MAO, you should totally nab Spain while you can
+    % I manage to hold NWY, you should grab Sweden if that's more to your liking.
     You can steal STP [St. Petersburg] from Russia if you’re in SWE [Sweden] next turn. I will support you there.
 \end{quote}
-which was made by England to Germany about a move from Sweden to St. Petersburg and shows a will to support. Ultimately, we want to be able to tell if the speaker is lying and if the speaker is able to convince the recipient to alter their action. This is necessary to measure how effectively Cicero communicates in this game. 
+%
+We want to be able to tell if the speaker is lying (e.g., they're
+going to do something else instead of what they claim they're going to
+do) and if the speaker has convinced the recipient to alter their
+actions.
+%
+This is necessary to measure how effectively \cicero{} communicates in the game.
 
-To understand communication with Diplomacy, we categorize intentions into three as shown in Figure X. For each turn of the game, the first intent before any communication is an initial intent. During communication, a speaker can express their intent through text, which we call communicative intent. In the final intent, we just call it as the final order which is the order (unit moves) the agent submits to the game. The initial intent and final order is easy to capture through the game engine (Section X). However, the communicative intent that is expressed through a message from the speaker to the recipient is hard to capture into an exact order. Thus, we use Abstract Meaning Representation (\abr{amr}, cite) to build a machine-readable representation of the intentions within communication. We describe annotations and training \abr{amr} parser more in Section X.
+While we know the intended \emph{actions} of players when they submit their
+moves, we need to see how those moves match up to their
+\emph{communications} in the discussion period before they submit
+moves (Figure~\ref{fig:dec_per_example}). 
+%
+We use \abr{amr} to build a
+machine-readable representation of \textit{the intent of actions} in their communications. 
+%
+We are not starting from scratch: \abr{daide} (Section~\ref{sec:background}) provides a set of predicates (ally, move, etc.) critical to Diplomacy communications.
+%
+We thus focus on annotating these predicates that encode actions, allowing us to understand the \emph{communicative intent} of messages, where speakers could say they will do something \textbf{and} follow through, or say they will do something and \textbf{not} follow through.
+% 
+Because not all information needed for annotation is in the
+raw message text, we further show human annotators who wrote the text (e.g., France,
+Germany), seasons (e.g., Spring 1901), and the current game state.
+%
+This information is necessary to annotate \textit{``You can steal
+  STP from Russia if you are in SWE this turn. I will support you there''} in the earlier example so that the annotators can assume what unit would support and what unit would move into Sweden.
+%
+In this case, England's fleet in Norway supports a German fleet in Skagerrak to move into Sweden.
 
-In the example, England says it would support Germany's move into Sweden from Skagerrak Sea, while Germany agrees with the proposal from England. To decide whether this is deceptive or persuasive. We first look into their definitions, where deception can be broken down into two subconcepts: breaking of a commitment and lying. We say that Germany violates a commitment with England if Germany verbally agrees to move to Sweden but actually attacks England in Norway. For persuasion, England’s request is
-considered persuasive if Germany moves to Sweden, as England suggests, instead of Germany’s
-original plan to move to the North Sea. We describe each of these
-more formally in Section X.
+\subsection{Annotation}
+\label{sec:amr_annotation}
 
-%method and its goal
-\subsection{Grounding Messages into Intentions}
-We already introduced \abr{amr} as to build a human-readable representation of the communicative intents, now we want to dive deep into how we make use of it to translate any English message to a speaker's intentions. First, we focus on annotating a set of predicates that are critical to Diplomacy (e.g. ally, move, originally from \abr{DAIDE}) to encode intents within communication. Diplomacy has its unique vocabulary (an example in the above statement). We extend \abr{amr} vocabulary to include provinces like SWE for Sweden and verbs like threaten and demilitarize, as well as to describe actions like gaining or holding. In the annotation phase, we have Diplomacy experts annotate sentences from Peskov to train human annotators. We annotate 8,878 utterances in  total where these are further used for training our English-to-\abr{amr} parser to extract communicative intent information from any messages.
+%
+Like any specialized domain, \textit{Diplomacy} has its unique
+vocabulary.
+%
+% We extend the \abr{amr} vocabulary not just with abbreviations like ``NWY'' (Norway) but also with verbs like ``threaten'' or ``demilitarize'' (set up a demilitarized zone) and to cover gaining/holding/losing provinces, especially supply centers (``SC'') in the example (Full extended vocabulary in Appendix~\ref{sec:amr_annotation_appendix}).
+Taking the above statement as an example, we extend the \abr{amr}
+vocabulary to include not only abbreviations, such as ``SWE'' for
+Sweden, but also verbs like ``threaten'' and ``demilitarize'' (to set
+up a demilitarized zone), as well as to describe actions like gaining,
+holding, or losing provinces, especially supply centers (``SC''),
+which are equivalent to points and integral to winning the game.
 
-We finetune a sequence-to-sequence model on \abr{amr} 3.0 dataset (cite X) as a baseline model and then we further finetune this baseline model on Diplomacy \abr{amr}-annotated, where this improves \abr{SMATCH} from 22.8 to 61.9. With additional steps like providing countries of speaker and recipient, replacing pronouns with country and  replacing provinces in abbreviation with their full names, help increasing \abr{SMATCH} to 66.6. This parser enables us to capture communicative intents which are essential in detecting deception and persuasion. 
+In contrast to standard \abr{amr} annotation, where every sentence is fully annotated, Diplomacy \abr{amr} annotation sometimes involves only partial or no annotation for certain utterances, depending on their relevance to gameplay strategies like forming alliances or making moves, exemplified by \abr{amr} concepts such as \amr{ally-01}, \amr{move-01}, and \amr{attack-01} (the full extended vocabulary introduction in
+Appendix~\ref{sec:amr_annotation_appendix}).
+%
+In a preliminary annotation phase, we have Diplomacy experts annotate sentences from \citet{peskov2020takes} to train human annotators and refine the Diplomacy Appendix of the \abr{amr} Annotation Dictionary.
+%
+%Our lead Diplomacy \abr{amr} annotators 
+We annotate 8,878 utterances
+(ranging from a word to several sentences).
+%
+4,412 of those utterances are annotated as empty \abr{amr}s (e.g. for
+``Lemme think about your idea'') indicating no in-game move intent.
+%
+598 of the annotated \abr{amr}s contain full information
+extracted from messages of Diplomacy games. The remaining 3,868 \abr{amr}s
+contain 3,306 utterances with underspecified information such as units
+with missing type, location (Figure~\ref{fig:amr_loc}), and nationality (Figure~\ref{fig:amr_country}), as well as 562 agreements with a
+missing object.
+Many utterances contain underspecified information, as Diplomacy players often communicate with messages that lack specific details (which are implicit and can be inferred from the game state).
+
+The annotated \abr{amr} corpus is further used for
+training our English-to-\abr{amr} parser to extract communicative intent information from
+utterances.
+
+\subsection{Training a Parser to Detect Intentions}
+\label{sec:amr_parser}
+
+We use a sequence-to-sequence
+model~\cite{amrlib2023}
+fine-tuned on the \abr{amr} 3.0 dataset~\cite{LDC2020} as the baseline model to detect
+communicative intent in new conversations.
+% \jbgcomment{Can we upgrade the footnote to a real cite?}
+% \fgcomment{There is no technical paper on the models other than that link. should we just use a specific entry type/cite seq2seq?}
+% \yzcomment{I will cite the whole repository later, I think github has this support.}
+%
+Following other \abr{amr} work, we report parsing accuracy via the
+widely-used \abr{smatch} score~\cite{cai-knight-2013-smatch}.
+% 
+We divide the annotated corpus into 5,054 training, 1,415 validation
+and 2,354 test sentences, where each sentence is in the train /
+validation / test folds, split by game~\citep{peskov2020takes}.
+% which
+% ensures we generalize across speakers and phenomena specific to a
+% game. In other words, the validation and test folds are from discrete
+% games.
+
+
+
+% \jbgcomment{Describe pipeline for detecting AMR from text}
+
+% While stylistic aspects play an indispensable role in sustaining engagement and interest among participants, factual information is more vital for informed decision-making. Detecting deception and persuasion in communications requires checking the relationship between message information and initial/final moves of a particular power. To address the nuanced challenge of distinguishing meaningful and informative content from stylistic dialogues in \textit{Diplomacy}, our focus herein is on developing a sophisticated pipeline for information extraction using AMR from text. We propose an innovative approach that incorporates valuable world knowledge into our system, thereby augmenting its capability to parse and interpret the multifaceted nature of dialogues. Semantic Parsing for natural languages to AMR is well-established. For \textit{AMR Baseline Semantic Extraction}, we utilize pretrained Sequence-to-Sequence model from the Huggingface transformers library. This model has been fine-tuned using the AMR 3.0 (LDC2020T02) dataset \cite{} for parsing in amrlib. We employ SMATCH  score to evaluate AMR accuracy, which is the most commonly used metric for evaluating AMR parsers. 
+%
+
+We improve the model, starting from a baseline version without
+fine-tuning with \abr{smatch} of 22.8.
+%
+Our domain-tuned model using Diplomacy-\abr{amr} improves \abr{smatch}
+by 39.1, to 61.9.
+%
+Adding data augmentation into the model (e.g., knowing the sender of a
+message is England and the recipient is Germany) improves \abr{smatch} to 64.6.
+%
+Adding separate encodings for this information further improves
+\abr{smatch} by 0.8 (65.4).
+%
+Additionally, we apply data processing to replace (1) pronouns with country names and (2) provinces in abbreviations with full names, which increases \abr{smatch} to 66.6 (More parser details in
+Appendix~\ref{sec:amr_parser_appendix}).
+%
+This parser enables us to evaluate the role that communication has in
+\cicero{}'s capabilities.
+
+\subsection{Does \cicero{} need to Talk to Itself to Win?}
+\label{sec:Comp_comp_games}
+% It is natural to question how \cicero{} use its communicative ability to help win a game. We want to measure what communication matters in Diplomacy game and does \cicero{} really make use of it. 
+
+% the importance of communication in a game
+% that can be played without any communication, which is known as
+% `gunboat'---they cannot send messages and cannot read messages (Appendix~\ref{sec:ext_related}).
+
+% \jbgcomment{we have an appendix section on that, forward point to that}
+%
+% We answer this question by running a series of games where all the
+% players are variants of \cicero{}, with modifications to their
+% communication abilities, from `gunboat'---they cannot send messages and cannot read messages (Appendix~\ref{sec:ext_related}) to Natural Language level.
+
+The first question is whether communication matters in games with other \cicero{} agents (deferring the question of competition with humans to later sections).
+We have \cicero{} variants with different levels of communication abilities---ranging from ``gunboat'' without any messages (Appendix~\ref{sec:gunboat_background}) to full Natural Language capabilities---play each other and evaluate the results.
+
+%
+% With the \abr{amr} parser in hand, we are able to degrade \cicero{} so that it is only able to communicate with
+% transactional speech that aligns with a subset of \abr{amr} consistent
+% with the communicative protocols in
+% Appendix~\ref{sec:amr_annotation_appendix}.
+% With the \abr{amr} parser in hand, we are able to degrade \cicero{} so that it can only use speech that corresponds with a subset of \abr{amr} and is in line with established communicative protocols (Appendix~\ref{sec:amr_annotation_appendix}).
+%
+% In other words, we run the parser over utterances, transmit anything
+% that we can parse, and throw everything else out.
+% 
+For the seven \cicero{} variants in each game, we randomly select three to have communicative
+ability; the remaining four play communication-less ``gunboat.''
+%
+The selected three communicative powers have the same
+\textit{communication level}. 
+%
+We define a set of communication
+levels, from more communicative to less
+communicative:
+
+\begin{itemize}    
+    \item \abr{Natural Language}: the \cicero{} agent of \citet{meta2022human} with full natural language
+    \item \abr{amr}: only messages about game actions (i.e. those that are parsed by \abr{amr}) go through, allowing the agents to coordinate game actions (Appendix~\ref{sec:amr_annotation_appendix})
+    %they communicate using extracted complete information, attempting to isolate communicative intent % but is inherently noisy due to the processing pipeline.
+    \item \abr{Random}: a random message from a corpus of previous Diplomacy games is sent,\footnote{We match the assigned power of the sender and receiver and the year, which makes the message slightly more convincing (but unlikely to be consistent with the game state).} mimicking form without content. %whatsoever
+\end{itemize}
+%
+% Limiting \cicero{} to this minimal communication does not significantly impede its ability to cooperate and communicate with itself. However, it's possible that \cicero{}'s natural language skills might not be as effective on a fellow AI. 
+% Limiting \cicero{} to this minimal communication does not significantly impede its ability of building the strategy. It's possible that \cicero{}'s natural language skills might not be such effective on a fellow AI.
+% Also, it is possible that \cicero{}'s natural
+% language skills are not such effective as a key to winning.
+%RESOLVED \jbgcomment{Have we defined ``power''?}
+\cicero{} plays 180 games with itself; 60 games for each communication
+level.
+%
+In each game, we stop after 14 movement turns with 10 minutes
+of communication for each turn.
+%
+% The power distribution of three randomly picked communicative powers
+% is balanced, with each power being selected 24--28 times across the
+% three different communication levels.
+%
+We randomly select which power the agents are assigned to, so  power distribution is balanced.
+
+We measure performance by the number of supply centers (and thus how well the agent played the game, Appendix~\ref{sec:amr_CCgames_appendix}).
+%
+Consistent with our hypothesis that performance is driven by tactics, the gains \cicero{} gets from communication is substantially smaller than the gains from playing a stronger power (Figure~\ref{fig:Feature_coef}):
+%
+Playing as France (\abr{fra}) yields an expected 2.8 additional supply centers (2.0--3.6 95\% interval)  compared to the median power Russia (\abr{rus}). In contrast, the best language condition \abr{amr} only yielded an expected 0.2 additional supply centers (-0.5--0.9 95\% interval). In other words, the effect of choosing the best power over the median power is 14 times larger than the best communication strategy.
+%
+This is consistent with prior findings~\citep{sharp1978game} that France is the easiest power to play and our other findings that \cicero{}'s  communicative ability plays no clear role in its win rate.
+% \jbgcomment{citation?} \wwcomment{can find only one book though many online blogs (reddit)}
+%
+% The 95\% confidence intervals of the coefficient for France ranged from 7.05 to 8.08 and for Germany from 4.98 to 6.01, indicating a high level of precision in these estimates. 
+%
+% In contrast, communication strategies such as  
+%
+
+To better understand what \cicero{} is using communication for, we build on our \abr{amr} representations to capture intent in the next section.
+
+% Figure~\ref{fig:Feature_coef} shows the feature Coefficients in the regression model. From these results it is clear that \cicero{} doesn't really rely on its communicative skills compared with its strong decision-making strategies.
+
+% To better understand \cicero{}'s communicative abilities with humans, we first need to define what constitutes persuasion and deception, building on our \abr{amr} dialog representation.
+% Results are shown in Figure \ref{fig:Feature_coef}.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.45\textwidth]{figures/Feature_Coefficients_CC_final.pdf}
+    \caption{Power assignment is strongly predictive of \cicero{} performance as measured by supply center gains. Coefficients (with 95\% confidence intervals) from a linear regression with \abr{Random} Message/Russia as a baseline, show that the effect of choosing the effect of changing language systems is trivial compared to changing powers.}
+\label{fig:Feature_coef}
+\end{figure}
+
+% \input{tables/Computer_Computer_Games.tex}
+
+% These results suggest that \cicero{} limited to this minimal communicative space does not significantly impede its ability to cooperate and communicate with itself.
+% %
+% But it could be that \cicero{}’s natural language skills are lost on a fellow AI.
+% %
+% We want to test \cicero{}’s ability to persuade and deceive humans, but to do that, we will need to first define persuasion and deceptions, which will again require our AMR analysis.
+
+
+
+% The dataset comprises instances of games, each characterized by a set of explanatory variables and a single outcome variable, the final score. The explanatory variables include seven binary features representing the seven powers in Diplomacy standard map and three binary features representing the communication levels. The binary features for powers were encoded such that a '1' indicates the presence of a power and '0' the absence from $X_1$ to $X_7$. Similarly, communication levels are one-hot encoded, where each level is mutually exclusive and represented by a '1' in one of the three corresponding columns and '0' in the others from $X_8$ to $X_{10}$. The multiple linear regression model can be represented by the following equation:
+                      
+% \[
+% Y = \beta_1X_1 + \beta_2X_2 + \ldots + \beta_{10}X_{10} + \varepsilon
+% \]
+
+% where:
+% \begin{itemize}
+%     \item \( Y \) is the dependent variable (number of end-of-game supply centers),
+%     \item \( \beta_1, \ldots, \beta_{10} \) are the coefficients of the explanatory variables \( X_1, \ldots, X_{10} \),
+%     \item \( \varepsilon \) is the error term.
+% \end{itemize}
+
+% We exclude the intercept since our one-hot encoded features are mutually exclusive categories that cover all possible scenarios, and our dataset does not contain a scenario where all categories are 0 (at least one power and one communication level must be active). The model was fitted using the Ordinary Least Squares (OLS) method.
 
 \subsection{Broken Commitment and Persuasion}
 We break deception into two subconcepts where we mostly focus on broken commitment, as in the above example, Germany agrees to move to Sweden but actually attacks England in Norway. Capturing when a commitment is broken is possible through intents whereas capturing lies is challenging. As studied by Peskov that human agents annotate messages as either truthful or deceptive (while playing), they define deception to agents: \textit{Typically, when [someone] lies [they] say what [they] know to be false in an attempt to deceive the listener}. This definition of lies is broader than a broken commitment, while the two still lie under deception. With this, we formulate a broken commitment as a partial form of deception when a agent~$i$ commits to doing an
@@ -554,7 +918,7 @@ humans. Specifically, we want to answer:
     \item Can \cicero pass as a human?
 \end{enumerate}
 
-We adapt the game engine created by \citet{paquette-19} and introduce
+We adapt the game engine created by \citet{NEURIPS2019_84b20b1f} and introduce
 additional measures  to the interface to help us answer these
 questions.
 %
