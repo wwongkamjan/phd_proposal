@@ -1,0 +1,59 @@
+\begin{table}
+    \centering
+    \begin{tabular}{p{1.2cm}p{5.5cm}}
+    \hline
+    \textbf{Sender} & \textbf{Message}   \\ 
+    \hline
+     Austria & \small{That's an interesting opening. Was the bounce in EC planned?} \\ 
+      Austria & \small{Do you think Germany will work with you against France?} \\ 
+    \rowcolor{grayish}  % Coloring a specific row
+    England & \small{Yeah it would be great if we team up} \\
+    \end{tabular}
+    \caption{The broken commitment detector ($\text{BC}(\cdot)$) cannot detect deception in alliance agreement when Austria (human) deceives England.}
+    \label{fig:alliance_2}
+\end{table}
+
+\begin{table}[t]
+    \centering
+    \begin{tabular}{p{1.2cm}p{5.5cm}}
+    \hline
+    \textbf{Sender} & \textbf{Message}   \\ 
+    \hline
+     Turkey & \small{If you retreat from Serbia into Budapest, then I'm in} \\ 
+    \rowcolor{grayish}  % Coloring a specific row
+    Italy & \small{I will do that if Serbia gets dislodged} \\
+    \end{tabular}
+    \caption{Italy agrees with the condition that the Turkey unit should move out of Serbia; however, our \abr{amr} parser captures Italy's sentence as \textit{``I will move to Serbia,''} which is invalid and makes our detection detects deceptive when Italy does not move to Serbia.}
+    \label{fig:invalid_amr}
+\end{table}
+
+\begin{table}[t]
+    \centering
+    \begin{tabular}{p{1.2cm}p{5.5cm}}
+    \hline
+    \textbf{Sender} & \textbf{Message}   \\ 
+    \hline
+     Germany & \small{Also, can we keep Burgundy clear?} \\ 
+    \rowcolor{grayish}  % Coloring a specific row
+    France & \small{Yes, we can do that. Are you moving to Helgoland?} \\
+    \end{tabular}
+    \caption{France (human) annotated \textit{``Yes, we can do that.''} as \textbf{Truth}, which contradicts the final move where France moves to Burgundy. This is captured as a broken commitment by the $\text{BC}(\cdot)$ function.}
+    \label{fig:lie_annotation}
+\end{table}
+
+\begin{table}[t]
+    \centering
+    \begin{tabular}{p{1.2cm}p{5.5cm}}
+    \hline
+    \textbf{Sender} & \textbf{Message}   \\ 
+    \hline
+     Germany & \small{I am going to try to move to English Channel} \\ 
+    \rowcolor{grayish}  % Coloring a specific row
+    England & \small{Sure} \\
+     Germany & \small{It might help you hold London} \\ 
+    \rowcolor{grayish}  % Coloring a specific row
+    England & \small{Yeah I am holding London} \\
+    \end{tabular}
+    \caption{England (human) annotate \textit{``Yeah I am holding London''} as \textbf{Truth}, which contradicts the final move where an army in London moves to Edinburgh. This is captured as a broken commitment by the $\text{BC}(\cdot)$ function.}
+    \label{fig:lie_annotation_2}
+\end{table}

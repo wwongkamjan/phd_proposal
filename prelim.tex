@@ -2,7 +2,7 @@
 \usepackage{microtype}
 \usepackage{graphicx}
 %\usepackage{subfigure}
-\usepackage{booktabs} % for professional tables
+\usepackage[table]{xcolor}
 \usepackage{subcaption}
 \usepackage[all]{nowidow}
 % \definecolor{grayish}{rgb}{0.95, 0.95, 0.96}
@@ -26,9 +26,13 @@
 % For CJK usage
 \usepackage{CJKutf8} 
 \usepackage{ucs} 
+\usepackage{tabularx}
 \usepackage[encapsulated]{CJK} 
 \newcommand{\myfont}{gbsn}
 \newcommand{\abr}[1]{\textsc{#1}}
+\definecolor{grayish}{rgb}{0.95, 0.95, 0.96}
+\definecolor{corn}{RGB}{233, 210, 135}
+\usepackage{multirow}
 
 % You need a newsubfloat element to use subcaption
 \newsubfloat{figure}
@@ -258,6 +262,7 @@ MDPs is a setup for only one agent, while this work focuses on multiagent. We co
 The objective of each agent $i$ is to select a policy $\pi_i(s) : S \rightarrow \Delta A_i$ that maximizes its expected reward, given the policies of the other agents. At each state $s \in S$, agent $i$ simultaneously chooses an action $a_i$ from its action set $A_i$, while all other agents choose actions denoted collectively by $\mathbf{a}_{-i}$. Rather than selecting a single action deterministically, an agent may instead use a probability distribution over its actions. In this case, the probability of choosing action $a_i$ in state $s$ is given by $\pi_i(s, a_i)$, and the full action distribution is represented by the vector $\pi_i(s)$ or simply $\pi_i$.
 
 \section{Diplomacy}
+\label{sec:diplomacy}
 \textit{Diplomacy} is a strategic board game that combines negotiation
 and strategy, where players take on the roles of various European
 powers (nations) on the eve of World War~I.
@@ -435,7 +440,7 @@ where there is a wanting event, whose \texttt{ARG0} (wanter) is a boy, and whose
 
 HCA is particularly useful in environments where actions have long-term consequences and the impact of a single action may not be immediately apparent. In Diplomacy, for example, a player's decision to form an alliance or betray another player can have cascading effects on the game's outcome, making it difficult to attribute success or failure to specific actions.
 
-\subsection{Motivating HCA in Diplomacy: A Formalism}
+\subsection{Motivating HCA in Diplomacy}
 
 To formalize the credit assignment problem in Diplomacy, we can model the game as a Markov Decision Process (MDP). Let's define the key components:
 
@@ -452,13 +457,13 @@ $$
 Q^{\pi}(x, a) = \mathbb{E}_{\tau \sim \mathcal{T}(x, a, \pi)}[Z(\tau)]
 $$
 
-The core challenge is estimating this value accurately. Traditional methods often struggle with the long-term and multi-agent dynamics of Diplomacy. HCA offers a different perspective by reframing the question from "what is the expected future outcome of this action?" to "given an outcome that happened, how relevant was a past action in causing it?"
+The core challenge is estimating this value accurately. Traditional methods often struggle with the long-term and multi-agent dynamics of Diplomacy. HCA offers a different perspective by reframing the question from ``what is the expected future outcome of this action?'' to ``given an outcome that happened, how relevant was a past action in causing it?''
 
 \subsection{HCA Formulations}
 
 HCA introduces a \textbf{hindsight distribution}, which is the conditional probability of having taken an action given a future outcome. We can formulate this in two main ways.
 
-\subsubsection{1. Conditioning on Future States}
+\subsubsection{Conditioning on Future States}
 
 First, we can consider the relevance of an action to reaching a specific future board state. The \textbf{state-conditional hindsight distribution} is the probability that we took action $a_0$ at the start of a sequence, given that the game reached state $y$ at a later step $k$:
 $$
@@ -472,7 +477,7 @@ $$
 
 This allows us to use a single game trajectory to update the values of all possible actions, not just the ones that were actually chosen. For instance, if a move into Belgium led to a strong position in France, we can give that move credit, even if the overall game was eventually lost due to later events.
 
-\subsubsection{2. Conditioning on Future Returns}
+\subsubsection{Conditioning on Future Returns}
 
 Alternatively, we can condition directly on the final outcome of the game. The \textbf{return-conditional hindsight distribution} is the probability of having taken action $a$ given that the final return was $z$:
 $$
@@ -509,11 +514,11 @@ This formulation is particularly powerful. If an action makes a good outcome mor
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Benchmarking AI Strategy and Social intelligence}
+\chapter{Benchmarking Strategy and Social intelligence in AI}
 \label{ch:benchmark_cicero}
 % motivation
 % why diplomacy -> cicero
-A board game that combines negotiation and strategy, Diplomacy serves as a right fit where 7 agents take on the roles of European powers on the eve of World War I within a mixed cooperative and competitive environment. As a strategy game, Diplomacy requires strategic planning not only about the moves (like Chess, Go) but also about negotiation to form alliances, or even break alliances with betrayal. We focus on deception as part of betrayal, that though it happens rarely (5\%, Peskov 2020), it is the most essential to capture since it could cost the victim to lose control of territories while the deceiver can gain more territories.
+A board game that combines negotiation and strategy, Diplomacy serves as a right fit where 7 agents take on the roles of European powers on the eve of World War I within a mixed cooperative and competitive environment. As a strategy game, Diplomacy requires strategic planning not only about the moves (like Chess, Go) but also about negotiation to form alliances, or even break alliances with betrayal. We focus on deception as part of betrayal, that though it happens rarely \citep[5\%,][]{peskov2020takes}, it is the most essential to capture since it could cost the victim to lose control of territories while the deceiver can gain more territories.
 
 With these elements of strategy and negotiation of Diplomacy, \cicero, an AI agent is claimed to be \textit{superhuman}, surpassing human agents and has \textit{mastered Diplomacy}. Although this is a truly breakthrough, however, \cicero has been overclaimed since it is only showing that it is winning more than humans, while aspects of negotiations to form alliance, to persuade such moves that are beneficial for both parties or to deceive when breaking alliances, have not been well established. These communicative acts are necessary for mastering and enjoying Diplomacy and grounded in the state of the game (i.e. unit moves are mentioned within persuasive and deceptive messages). We see this opportunity to measure whether \cicero is human-level in both strategy and communication as claimed.
 
@@ -546,7 +551,7 @@ a game of nuanced negotiation \citep{kraus1995designing}, convincing
 persuasion, and judicious betrayal.
 %
 We argue that \emph{mastering} \textit{Diplomacy} requires these
-communicative skills (Section~\ref{sec:background}).
+communicative skills (Section~\ref{sec:diplomacy}).
 %
 Measuring persuasion, deception, and cooperation are open problems
 with no clear solution.  A boardgame constrains the world of actions
@@ -563,10 +568,9 @@ mapping from communication to in-game actions (e.g., verifying that I follow thr
 %
 persuasion uses words to convince someone to do something,
 and deception is saying something to alter another's belief~\cite{chrisholm1977intent}.
-%RESOLVED \jbgcomment{can we add theory of deception cites?}
 %
 In both cases, we map and contrast communication to agents' actions.
-%RESOLVED \jbgcomment{Inconsistent section references.  If you want to switch up, use a macro.}
+
 
 To enable this mapping, we annotate messages from human games with
 abstract meaning
@@ -625,12 +629,10 @@ improve computers' ability to not just talk like a human but to realistically ti
 
 
 \label{sec:amr}
-% \jbgcomment{I made up an example, would be nice if we could find a real one\dots}
+
 Consider this in-game statement made by England to Germany about a
 specific move-set (glosses added to locations):
 \begin{quote}
-    % I'm going to stand pat in MAO, you should totally nab Spain while you can
-    % I manage to hold NWY, you should grab Sweden if that's more to your liking.
     You can steal STP [St. Petersburg] from Russia if you’re in SWE [Sweden] next turn. I will support you there.
 \end{quote}
 %
@@ -649,7 +651,8 @@ moves (Figure~\ref{fig:dec_per_example}).
 We use \abr{amr} to build a
 machine-readable representation of \textit{the intent of actions} in their communications. 
 %
-We are not starting from scratch: \abr{daide} (Section~\ref{sec:background}) provides a set of predicates (ally, move, etc.) critical to Diplomacy communications.
+We are not starting from scratch: The Diplomacy \abr{ai} Development
+Environment~\cite[\abr{daide}]{DAIDE} provides a set of predicates (ally, move, etc.) critical to Diplomacy communications.
 %
 We thus focus on annotating these predicates that encode actions, allowing us to understand the \emph{communicative intent} of messages, where speakers could say they will do something \textbf{and} follow through, or say they will do something and \textbf{not} follow through.
 % 
@@ -669,17 +672,35 @@ In this case, England's fleet in Norway supports a German fleet in Skagerrak to 
 Like any specialized domain, \textit{Diplomacy} has its unique
 vocabulary.
 %
-% We extend the \abr{amr} vocabulary not just with abbreviations like ``NWY'' (Norway) but also with verbs like ``threaten'' or ``demilitarize'' (set up a demilitarized zone) and to cover gaining/holding/losing provinces, especially supply centers (``SC'') in the example (Full extended vocabulary in Appendix~\ref{sec:amr_annotation_appendix}).
 Taking the above statement as an example, we extend the \abr{amr}
 vocabulary to include not only abbreviations, such as ``SWE'' for
 Sweden, but also verbs like ``threaten'' and ``demilitarize'' (to set
 up a demilitarized zone), as well as to describe actions like gaining,
 holding, or losing provinces, especially supply centers (``SC''),
-which are equivalent to points and integral to winning the game.
+which are equivalent to points and integral to winning the game. Our Diplomacy Appendix of the \abr{amr} Annotation Dictionary lists \abr{amr} concepts (e.g. \amr{betray-01}), their related English terms (e.g. \ betray, stab, traitor, treason), annotation examples, any corresponding DAIDE code, and notes. \abr{amr} concepts with DAIDE equivalents include \amr{ally-01}, \amr{build-01}, \amr{move-01}, and \amr{transport-01}. We analyzed player messages for additional concepts of high Diplomacy communication value, and extended the Diplomacy \abr{amr} vocabulary (compared to DAIDE) by including concepts such as \amr{attack-01}, \amr{betray-01}, \amr{defend-01}, \amr{expect-01}, \amr{fear-01}, \amr{have-03}, \amr{lie-08}, \amr{possible-01}, \amr{prevent-01}, \amr{tell-01}, \amr{threaten-01}, and \amr{warn-01}, as well as roles such as \amr{:purpose} and \amr{:condition}. This allows annotators to easily mark sentences, e.g. ``Russia is planning to take you out as soon as possible.'' would use the concept \amr{attack-01}. We also extended \abr{amr} guidelines to cover gaining/holding/losing provinces, especially support centers.
 
-In contrast to standard \abr{amr} annotation, where every sentence is fully annotated, Diplomacy \abr{amr} annotation sometimes involves only partial or no annotation for certain utterances, depending on their relevance to gameplay strategies like forming alliances or making moves, exemplified by \abr{amr} concepts such as \amr{ally-01}, \amr{move-01}, and \amr{attack-01} (the full extended vocabulary introduction in
-Appendix~\ref{sec:amr_annotation_appendix}).
+In contrast to standard \abr{amr} annotation, where every sentence is fully annotated, Diplomacy \abr{amr} annotation sometimes involves only partial or no annotation for certain utterances, depending on their relevance to gameplay strategies like forming alliances or making moves, exemplified by \abr{amr} concepts such as \amr{ally-01}, \amr{move-01}, and \amr{attack-01}.
 %
+\begin{figure}[h]
+\
+    \small{ \texttt{(m / move-01\\
+    \hspace*{4 mm}:ARG1 (u / unit\\
+    \hspace*{8 mm}:mod (c2 / country\\ 
+    \hspace*{16 mm}:name (n2 / name :op1 ``Austria'')))\\
+    \hspace*{4 mm}:ARG2 (p2 / province\\ 
+    \hspace*{8 mm}:name (n3 / name :op1 ``Brest'')))\\}}
+    \caption{\label{fig:amr_loc}Parsing from English to \abr{AMR} can have underspecified utterances. The English text is from Austria talking to Italy, ``\textit{Let's work on our plan, I'm moving to Brest}''. We show an \abr{AMR} with missing unit location referencing from English text.}
+\end{figure}
+
+\begin{figure}[h]
+    \small{ \texttt{(m / move-01\\
+    \hspace*{4 mm}:ARG1 (u / unit\\
+    \hspace*{8 mm}:location (p2 / province\\  
+    \hspace*{16 mm}:name (n / name :op1 ``Romania'')))\\
+    \hspace*{4 mm}:ARG2 (p3 / province\\ 
+    \hspace*{8 mm}:name (n3 / name :op1 ``Bulgaria'')))\\}}
+    \caption{\label{fig:amr_country}AMR being underspecified in unit country where it parses from English text, ``\textit{just bumping Bulgaria from Romania}''}
+\end{figure}
 In a preliminary annotation phase, we have Diplomacy experts annotate sentences from \citet{peskov2020takes} to train human annotators and refine the Diplomacy Appendix of the \abr{amr} Annotation Dictionary.
 %
 %Our lead Diplomacy \abr{amr} annotators 
@@ -704,30 +725,19 @@ utterances.
 \label{sec:amr_parser}
 
 We use a sequence-to-sequence
-model~\cite{amrlib2023}
-fine-tuned on the \abr{amr} 3.0 dataset~\cite{LDC2020} as the baseline model to detect
+model~\citep{amrlib2023}
+fine-tuned on the \abr{amr} 3.0 dataset~\citep{LDC2020} as the baseline model to detect
 communicative intent in new conversations.
 % \jbgcomment{Can we upgrade the footnote to a real cite?}
 % \fgcomment{There is no technical paper on the models other than that link. should we just use a specific entry type/cite seq2seq?}
 % \yzcomment{I will cite the whole repository later, I think github has this support.}
 %
 Following other \abr{amr} work, we report parsing accuracy via the
-widely-used \abr{smatch} score~\cite{cai-knight-2013-smatch}.
+widely-used \abr{smatch} score~\citep{cai-knight-2013-smatch}.
 % 
 We divide the annotated corpus into 5,054 training, 1,415 validation
 and 2,354 test sentences, where each sentence is in the train /
 validation / test folds, split by game~\citep{peskov2020takes}.
-% which
-% ensures we generalize across speakers and phenomena specific to a
-% game. In other words, the validation and test folds are from discrete
-% games.
-
-
-
-% \jbgcomment{Describe pipeline for detecting AMR from text}
-
-% While stylistic aspects play an indispensable role in sustaining engagement and interest among participants, factual information is more vital for informed decision-making. Detecting deception and persuasion in communications requires checking the relationship between message information and initial/final moves of a particular power. To address the nuanced challenge of distinguishing meaningful and informative content from stylistic dialogues in \textit{Diplomacy}, our focus herein is on developing a sophisticated pipeline for information extraction using AMR from text. We propose an innovative approach that incorporates valuable world knowledge into our system, thereby augmenting its capability to parse and interpret the multifaceted nature of dialogues. Semantic Parsing for natural languages to AMR is well-established. For \textit{AMR Baseline Semantic Extraction}, we utilize pretrained Sequence-to-Sequence model from the Huggingface transformers library. This model has been fine-tuned using the AMR 3.0 (LDC2020T02) dataset \cite{} for parsing in amrlib. We employ SMATCH  score to evaluate AMR accuracy, which is the most commonly used metric for evaluating AMR parsers. 
-%
 
 We improve the model, starting from a baseline version without
 fine-tuning with \abr{smatch} of 22.8.
@@ -741,8 +751,7 @@ message is England and the recipient is Germany) improves \abr{smatch} to 64.6.
 Adding separate encodings for this information further improves
 \abr{smatch} by 0.8 (65.4).
 %
-Additionally, we apply data processing to replace (1) pronouns with country names and (2) provinces in abbreviations with full names, which increases \abr{smatch} to 66.6 (More parser details in
-Appendix~\ref{sec:amr_parser_appendix}).
+Additionally, we apply data processing to replace (1) pronouns with country names and (2) provinces in abbreviations with full names, which increases \abr{smatch} to 66.6.
 %
 This parser enables us to evaluate the role that communication has in
 \cicero{}'s capabilities.
@@ -762,18 +771,9 @@ This parser enables us to evaluate the role that communication has in
 % communication abilities, from `gunboat'---they cannot send messages and cannot read messages (Appendix~\ref{sec:ext_related}) to Natural Language level.
 
 The first question is whether communication matters in games with other \cicero{} agents (deferring the question of competition with humans to later sections).
-We have \cicero{} variants with different levels of communication abilities---ranging from ``gunboat'' without any messages (Appendix~\ref{sec:gunboat_background}) to full Natural Language capabilities---play each other and evaluate the results.
+We have \cicero{} variants with different levels of communication abilities---ranging from ``gunboat'' without any messages to full Natural Language capabilities---play each other and evaluate the results.
 
-%
-% With the \abr{amr} parser in hand, we are able to degrade \cicero{} so that it is only able to communicate with
-% transactional speech that aligns with a subset of \abr{amr} consistent
-% with the communicative protocols in
-% Appendix~\ref{sec:amr_annotation_appendix}.
-% With the \abr{amr} parser in hand, we are able to degrade \cicero{} so that it can only use speech that corresponds with a subset of \abr{amr} and is in line with established communicative protocols (Appendix~\ref{sec:amr_annotation_appendix}).
-%
-% In other words, we run the parser over utterances, transmit anything
-% that we can parse, and throw everything else out.
-% 
+
 For the seven \cicero{} variants in each game, we randomly select three to have communicative
 ability; the remaining four play communication-less ``gunboat.''
 %
@@ -786,16 +786,12 @@ communicative:
 
 \begin{itemize}    
     \item \abr{Natural Language}: the \cicero{} agent of \citet{meta2022human} with full natural language
-    \item \abr{amr}: only messages about game actions (i.e. those that are parsed by \abr{amr}) go through, allowing the agents to coordinate game actions (Appendix~\ref{sec:amr_annotation_appendix})
+    \item \abr{amr}: only messages about game actions (i.e. those that are parsed by \abr{amr}) go through, allowing the agents to coordinate game actions (Section~\ref{sec:amr_annotation})
     %they communicate using extracted complete information, attempting to isolate communicative intent % but is inherently noisy due to the processing pipeline.
     \item \abr{Random}: a random message from a corpus of previous Diplomacy games is sent,\footnote{We match the assigned power of the sender and receiver and the year, which makes the message slightly more convincing (but unlikely to be consistent with the game state).} mimicking form without content. %whatsoever
 \end{itemize}
 %
-% Limiting \cicero{} to this minimal communication does not significantly impede its ability to cooperate and communicate with itself. However, it's possible that \cicero{}'s natural language skills might not be as effective on a fellow AI. 
-% Limiting \cicero{} to this minimal communication does not significantly impede its ability of building the strategy. It's possible that \cicero{}'s natural language skills might not be such effective on a fellow AI.
-% Also, it is possible that \cicero{}'s natural
-% language skills are not such effective as a key to winning.
-%RESOLVED \jbgcomment{Have we defined ``power''?}
+
 \cicero{} plays 180 games with itself; 60 games for each communication
 level.
 %
@@ -806,28 +802,19 @@ of communication for each turn.
 % is balanced, with each power being selected 24--28 times across the
 % three different communication levels.
 %
-We randomly select which power the agents are assigned to, so  power distribution is balanced.
 
-We measure performance by the number of supply centers (and thus how well the agent played the game, Appendix~\ref{sec:amr_CCgames_appendix}).
+This corpus comprises instances of games where we record the power and communication assignments and the final scores (e.g. `Game1': `AUS 0, ENG 0, FRA 4, GER 10, ITA 5, RUS 6, TUR 9. (FRA GER TUR)' with the three powers shown in parentheses being identified as communicative). We randomly select which power the agents are assigned to, so  power distribution is balanced.
+
+We measure performance by the number of supply centers (and thus how well the agent played the game).
 %
 Consistent with our hypothesis that performance is driven by tactics, the gains \cicero{} gets from communication is substantially smaller than the gains from playing a stronger power (Figure~\ref{fig:Feature_coef}):
 %
 Playing as France (\abr{fra}) yields an expected 2.8 additional supply centers (2.0--3.6 95\% interval)  compared to the median power Russia (\abr{rus}). In contrast, the best language condition \abr{amr} only yielded an expected 0.2 additional supply centers (-0.5--0.9 95\% interval). In other words, the effect of choosing the best power over the median power is 14 times larger than the best communication strategy.
 %
 This is consistent with prior findings~\citep{sharp1978game} that France is the easiest power to play and our other findings that \cicero{}'s  communicative ability plays no clear role in its win rate.
-% \jbgcomment{citation?} \wwcomment{can find only one book though many online blogs (reddit)}
-%
-% The 95\% confidence intervals of the coefficient for France ranged from 7.05 to 8.08 and for Germany from 4.98 to 6.01, indicating a high level of precision in these estimates. 
-%
-% In contrast, communication strategies such as  
-%
 
 To better understand what \cicero{} is using communication for, we build on our \abr{amr} representations to capture intent in the next section.
 
-% Figure~\ref{fig:Feature_coef} shows the feature Coefficients in the regression model. From these results it is clear that \cicero{} doesn't really rely on its communicative skills compared with its strong decision-making strategies.
-
-% To better understand \cicero{}'s communicative abilities with humans, we first need to define what constitutes persuasion and deception, building on our \abr{amr} dialog representation.
-% Results are shown in Figure \ref{fig:Feature_coef}.
 
 \begin{figure}[t]
     \centering
@@ -836,32 +823,9 @@ To better understand what \cicero{} is using communication for, we build on our 
 \label{fig:Feature_coef}
 \end{figure}
 
-% \input{tables/Computer_Computer_Games.tex}
 
-% These results suggest that \cicero{} limited to this minimal communicative space does not significantly impede its ability to cooperate and communicate with itself.
-% %
-% But it could be that \cicero{}’s natural language skills are lost on a fellow AI.
-% %
-% We want to test \cicero{}’s ability to persuade and deceive humans, but to do that, we will need to first define persuasion and deceptions, which will again require our AMR analysis.
-
-
-
-% The dataset comprises instances of games, each characterized by a set of explanatory variables and a single outcome variable, the final score. The explanatory variables include seven binary features representing the seven powers in Diplomacy standard map and three binary features representing the communication levels. The binary features for powers were encoded such that a '1' indicates the presence of a power and '0' the absence from $X_1$ to $X_7$. Similarly, communication levels are one-hot encoded, where each level is mutually exclusive and represented by a '1' in one of the three corresponding columns and '0' in the others from $X_8$ to $X_{10}$. The multiple linear regression model can be represented by the following equation:
-                      
-% \[
-% Y = \beta_1X_1 + \beta_2X_2 + \ldots + \beta_{10}X_{10} + \varepsilon
-% \]
-
-% where:
-% \begin{itemize}
-%     \item \( Y \) is the dependent variable (number of end-of-game supply centers),
-%     \item \( \beta_1, \ldots, \beta_{10} \) are the coefficients of the explanatory variables \( X_1, \ldots, X_{10} \),
-%     \item \( \varepsilon \) is the error term.
-% \end{itemize}
-
-% We exclude the intercept since our one-hot encoded features are mutually exclusive categories that cover all possible scenarios, and our dataset does not contain a scenario where all categories are 0 (at least one power and one communication level must be active). The model was fitted using the Ordinary Least Squares (OLS) method.
-
-\subsection{Broken Commitment and Persuasion}
+\section{Broken Commitment and Persuasion}
+\label{sec:detection}
 We break deception into two subconcepts where we mostly focus on broken commitment, as in the above example, Germany agrees to move to Sweden but actually attacks England in Norway. Capturing when a commitment is broken is possible through intents whereas capturing lies is challenging. As studied by Peskov that human agents annotate messages as either truthful or deceptive (while playing), they define deception to agents: \textit{Typically, when [someone] lies [they] say what [they] know to be false in an attempt to deceive the listener}. This definition of lies is broader than a broken commitment, while the two still lie under deception. With this, we formulate a broken commitment as a partial form of deception when a agent~$i$ commits to doing an
 action~$a^{i\to j}_{\text{msg}}$ and does not do it. In other words, given a set of \texttt{final orders}~$\mathbf{A}^{i}_{\text{final}}$ from agent $i$, 
 if $a^{i\to j}_{\text{msg}} \notin \mathbf{A}^{i}_{\text{final}}$, then this is a broken commitment, i.e., 
@@ -904,6 +868,8 @@ We define persuasion
 \end{equation}
 
 \section{Comparing Cicero to Humans}
+\label{sec:human_comp_games}
+
 \input{tables/dip_benchmark_overall_stat}
 % experiment setup 
 It is unclear whether \cicero can
@@ -937,6 +903,301 @@ The game setup differs from Meta's \cicero study: agents in this study know \emp
 In total, we collect 27,665 messages from communication between humans
 and \cicero (Table~\ref{tab:overall_stat}).
 % results
+
+\input{tables/supply_centers}
+\textbf{\cicero{} nearly always wins.}
+%
+Of twenty-four games, \cicero{} won twenty (84\%), which strongly suggests that \cicero{} has super-human strategy.
+%
+On average, \cicero{} has more supply centers than human players by the end of the game (Table~\ref{tab:scs}). 
+%
+Humans are about as good as \cicero{} when playing powers that require careful coordination of actions, such as Italy, which needs to manage both fleets and armies. 
+%
+However, when playing powers that require less coordination, such as Austria with its limited coastline, the gap in supply center counts between human players and \cicero{} is larger (see breakdown by power in Appendix Figure~\ref{fig:faceted_scs}); England is the only power where Cicero's average supply center count does not increase.
+%
+\begin{figure*}
+    \centering
+    \includegraphics[width=\textwidth]{figures/faceted_scs.pdf}
+    \caption{The average human player loses to \cicero{}. Human loses supply centers as game progresses unless playing as France, whereas \cicero{}'s supply center count rises except playing as England. \cicero{} makes better strategic decisions.}
+    \label{fig:faceted_scs}
+\end{figure*}
+
+\textbf{Human players can reliably (but not perfectly) identify the bot. }
+%
+We calculate the average $F$-score of identification by turn (Figure~\ref{fig:image1}). 
+%
+By the end of the first movement turn, human players have an average $F$-score of 0.58, which keeps increasing until the end of the game. 
+%
+At game end, the average $F$-score is 0.81. 
+%
+Even for players in their first game against \cicero{}, the average $F$-score reaches 0.77. 
+%
+Players who previously played against \cicero{} at least once are better at identifying it. 
+%
+This suggests that \cicero{} can no longer pass as human 
+% (as in~\cite{meta2022human}) 
+once humans are aware of the possible existence of such agents.
+% do we talk about heuristics of detecting cicero?
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.45\textwidth]{figures/f1_by_phase.pdf}
+\caption{Returning players (those who previously played against \cicero{} at least once) are better at correctly identifying other players as \cicero{} compared to first-time players. $F$-scores are presented for first-timers, returning players, and the average for all players, with smoothing via local regression \citep{doi:10.1080/01621459.1979.10481038}.}
+\label{fig:image1}
+\end{figure}
+
+\subsection{Lies annotation}
+\label{sec:result_human_lie}
+
+This section analyzes players' \textit{deliberate lies} in sent messages and \textit{perceived lies} in received messages.
+%
+Because \cicero{} sends more messages than humans, we normalize \textit{perceived lies} by the number of messages that humans receive from \cicero{} and humans (6,960 and 2,276), while we normalize results of \textit{deliberate lies} by the number of total messages that humans send.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.5\textwidth]{figures/perceived_lies.pdf}
+    \caption{Perception of deception rate by human annotation.}
+    \label{fig:perceived_lies}
+\end{figure}
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.5\textwidth]{figures/human_lies.pdf}
+    \caption{Deception rate by human self-annotation.}
+    \label{fig:human_lies}
+\end{figure}
+
+
+\input{tables/survey}
+\textbf{Humans feel that \cicero{} lies more often. }
+%
+% Of 9,236 messages received by human players, 1,167 (12.6\%) are perceived as lies.
+%
+Humans perceive 14.4\% of the 6,960 messages they receive from \cicero{} as lies (which is 1,005 messages, Figure~\ref{fig:perceived_lies}). In contrast, they perceive only 7.1\% of the messages from other humans as lies (which is 162 out of 2,276 messages).
+%
+In the survey (Table~\ref{tab:distribution}), players also think humans communicate more transparently than \cicero{}.
+% Players believe \cicero{} is more deceptive than human players.
+%
+However, humans are not good at detecting lies.
+%
+Within 2,276 Human-Human messages; humans
+can correctly identify five lies (0.2\%), suggesting a small overlap
+between actual lies and perceived lies.
+%
+% In other words, players are not very good at detecting lies from other
+% human players and they often wrongly classify truths as lies.
+
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.45\textwidth]{figures/detect_deception_rate.pdf}
+    \caption{Though \cicero{} was perceived to lie more, we detect more broken commitments from humans.
+    %
+    Each bar chart is the broken commitment rate (Equation~\ref{eq:bc}) labeled by sender and reciever: \cicero{} breaks commitment with \cicero{}, \cicero{} breaks commitment with Human, Human breaks commitment with \cicero{}, and Human breaks commitment with Human. Error bars represent $\pm$ one standard deviation over twenty-four games. }
+    \label{fig:dec_rate}
+\end{figure}
+% \subsection{Quantitative Evaluation}
+% We separate player groups into four combinations of pairs: \texttt{Human-Human}, \texttt{Human-\cicero{}}, \texttt{\cicero{}-Human}, and \texttt{\cicero{}-\cicero{}}.
+% %
+% We evaluate deception and persuasion by counting potential messages that players send out.
+% %
+% We keep track of the sender and the receiver.
+% %
+% %We count a message if a message's sender and recipient belong to both of a pair of player groups.
+% %
+% For example, France (Human) tells Germany (\cicero{}) to leave Burgundy. 
+% %
+% This will be counted towards the \texttt{Human-\cicero{}} group. 
+% %
+% The denominator is the number of messages that the first player of the group sends out, e.g., persuasion rate of \texttt{Human-\cicero{}} can be derived as $\frac{\text{total persuasive messages that a Human sent to \cicero{}}}{\text{all messages that a Human sent to \cicero{}}}$.
+
+\textbf{Humans return the favor by saying they lie to \cicero{} more often.} 
+%
+% Not only do humans see \cicero{} as somewhat lying, but they also
+% like to lie to \cicero{} (Figure~\ref{fig:human_lies}).
+%
+% To ensure unbiased in \cicero{} and humans, we normalize these deliberate lies by the number of messages humans send. 
+%
+Over 7,395 messages that
+humans sent out, 273 of these are purposeful lies to \cicero{} (3.7\%),
+while there are only forty-five lie messages to other human players (0.6\%).
+%
+This reflects that humans strategically lie more often to \cicero{} while believing that \cicero{} does not hold  grudges.
+
+% \cicero{} resists lies from humans, or human lies have
+% a low effect on \cicero{}'s decision-making.
+
+\subsection{Detection}
+\label{sec:result_detection}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.45\textwidth]{figures/all_persuasion.pdf}
+    \caption{Humans outpace \cicero{} in persuasive effectiveness. Humans have a higher persuasion success rate, which we measure by comparing the number of successful persuasions (yellow, left) to the total number of persuasion attempts (red, right). We analyze success rates across four groups: \cicero{} persuades \cicero{}, \cicero{} persuades Human, Human persuades \cicero{}, and Human persuades Human. Error bars represent the $\pm$~one standard deviation range from the aggregate of interactions in 24 games.}
+    \label{fig:all_persuasion}
+\end{figure}
+
+
+After validating our automatic metrics, we compare human and computer deception and persuasion.
+
+% We show detection accuracy following our definitions (Section~\ref{sec:detection}) and results for deception and persuasion. Note that we normalize the number of detected deception and persuasion by the number of total messages that occur in a certain group.
+%
+\begin{table}
+\centering
+\begin{tabular}{ccrr}
+\hline
+& &\multicolumn{2}{c}{\textbf{Detection}} \\
+\hline
+& & TRUE & FALSE \\
+\hline
+\multirow{2}{*}{\textbf{Expert}} & TRUE &20 &8 \\
+&FALSE &19 & 4745 \\
+\hline
+\end{tabular}
+\caption{Total 4,792 messages (from Human/\cicero{} to Human/\cicero{}) comparing TRUE/FALSE whether expert humans see as a lie and whether detected as a broken commitment by our detection.}
+\label{tab:expert_detect}
+\end{table}
+\input{tables/long_convo_bc}
+\textbf{Our broken commitment and persuasion detection is relatively effective.} 
+% 
+To ensure that our detection is good enough, we sample around 4800 messages for an accuracy study (Table~\ref{tab:expert_detect}).
+%
+Broken commitment detection has a \textit{precision} of 0.51 and a \textit{recall} of 0.71.
+% , demonstrating that it is quite effective.
+%
+Our precision is lower than our expectation due to errors in parsing a complex English to \abr{amr} \emph{and} a definition that only detects commitments at a move level (Section~\ref{sec:deception_limitation}). 
+%
+The broken commitment can \textbf{only} detect when a move in a message $A^{i\to j}_{\text{msg}}$ and a final move$A^{i\to j}_{\text{final}}$ are not aligned.
+%
+There are examples that  cannot detect, e.g. an agreement
+to an alliance (Table~\ref{fig:alliance}) or a long conversation
+before committing a deception (Table~\ref{fig:longconvo_dec}).
+%
+% We hand label samples and avoid using human lie annotation as a \textit{ground truth} of our deception since there is a message that a human player sees as \textit{Truth}, though they
+% decide to lie later (Figure~\ref{fig:lie_annotation}) and this is detected by our deception detection.
+%
+Accuracy for persuasion is better;
+precision rises to 0.81, and recall to 0.72.
+%
+% This shows that our detection is trustworthy and able to detect good
+% number of broken commitment and persuasion acts.
+
+\textbf{Broken commitments are inconsistent with the perceived lie annotations}.
+%
+Humans break commitments more frequently than \cicero{} (Figure~\ref{fig:dec_rate}):
+%
+Humans break commitments with \cicero{} 1.2\% of the time
+(63 out of Human--\cicero{} 5,151 messages) and do so to other human players 1.5\% of the time (35 out of Human--Human 2,276 messages).
+%
+On the other hand, \cicero{} breaks commitments at a lower, consistent rate, deceiving humans 0.76\% of the time and \cicero{}  0.57\% of the time (53 out of 6,960 messages and 77 out of 13,319 messages, respectively).
+%
+\input{tables/alliance}
+%
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.45\textwidth]{figures/alliance_agreement.pdf}
+%     \caption{The broken commitment detector ($\text{BC}(\cdot)$) has its limitation where it cannot capture deception in alliance agreement when Italy (human) deceives Turkey (\cicero{}).}
+%     \label{fig:alliance}
+% \end{figure}
+%
+% This shows that deception in humans is hard to capture, though it is possible if the conversation contains pieces of information that we can cross-reference to the world state, which in this work, is a Diplomacy game state.
+
+\textbf{Humans are more persuasive.}  
+For persuasion to happen, we need first an \emph{attempt}, initiated by a sender, and then \emph{success} when the receiver adopts the suggestion.
+%
+% Humans both make more attempts and succeed more often: 
+% clearly have more potential in persuasion and have higher success than \cicero{} overall (yellow bars in Figure~\ref{fig:all_persuasion}). 
+%
+% Of 7,427 messages, humans successfully persuaded another human player by 36 messages and successfully persuaded \cicero{} by 37 messages, which is 0.48\% and 0.50\%.
+% %
+% Though \cicero{} is not quite as persuasive as humans, among 20,270 messages, \cicero{} can persuade humans with 62 messages (0.31\%) and persuade other \cicero{}s with 53 messages (0.26\%). 
+%
+Both humans and \cicero{} on a per-message basis\footnote{Although because \cicero{} communicates more overall, humans attempt more times per game.} try to persuade at the same rate (around 8\% of the time, per Figure~\ref{fig:all_persuasion}).   
+%
+The success rate of human persuasion is 21.1\%
+%(36 out of 171 attempts)
+at persuading other humans and 8.6\% 
+% (37 out of 426 attempts) 
+at persuading \cicero{}. 
+%
+\cicero{} is less persuasive; its success rate is only 10.9\% in persuading humans and 7.0\% in persuading other bots.
+%
+% This shows that humans are more cooperative in games when persuading other players and when asked or suggested to take action. 
+
+In summary, humans are more deceptive and more persuasive than \cicero{}. 
+%
+Detection is possible, but defining a sequence of conversations as persuasion or deception is still difficult. 
+%
+Our reported numbers are low because both humans and \cicero{} engage in extensive back-and-forth discussions before making moves that can be definitively classified as persuasion or deception.
+
+
+\section{Deception detection limitations}
+\label{sec:deception_limitation}
+We want to discuss deception detection further here to state errors and limitations. Since we mentioned our \textit{precision} for deception detection is quite low (Section~\ref{sec:result_detection}), we hereby expand on detection limitations and also compare to human (deliberate) lies as follows:
+\begin{enumerate}
+    \item what our detection is likely to miss when humans lie,
+    \item what our detection mistakenly detects as deception,
+    \item what humans annotate as \textit{Truth}, though it is a \textit{break of commitment} and our detection can detect correctly.
+\end{enumerate}
+%
+\input{tables/deception}
+\textbf{Humans often lie about relationships.} Detecting broken commitment at the relationship level is not possible for our detection (Table~\ref{fig:alliance} and Table~\ref{fig:alliance_2}).
+%
+This is a limitation of our deception definition, which focuses on moves.
+%
+Though it is possible to extract the relationship among players to see conflicts in the messages, we avoid doing so because the relationship is another topic to study in more detail.
+%
+At this stage of our work, we cannot train a model predicting relationships that can be circulated from game states, dialogue, and moves without collecting human data first.
+%
+Therefore, we have relationship tracking from human players for a study in the future.
+
+\textbf{AMR limits broken commitment detection \textit{precision}.} Some messages are parsed incorrectly, which can be seen as a \textit{commitment is broken} (Table~\ref{fig:invalid_amr}). 
+%
+This makes the detection falsely detect \textit{truthful} messages as deceptive (increases false positive examples which decreases \textit{precision}).
+%
+Another limitation we observed is when one accepts the proposal but does not follow as commit using a short answer, e.g. \textit{Yes, I agree.} or \textit{Sure}.
+%
+Our \abr{amr} parser sometimes hallucinates and extracts invalid moves, which can be mistakenly detected as breaking a commitment. 
+%
+\input{tables/limit_bc}
+
+\textbf{Human lie annotation is not always correct.} It is true that we have human annotations, and they can be seen as \textit{ground truth}. However, we sample annotations from four games data and comparing to expert labeling (lies in Table \ref{tab:ann_expert} and perceived as lies in \ref{tab:plie_expert}). This shows that humans are not good at predicting lies, and sometimes they are \textit{honest} but then decide to break their words later.
+%
+There are examples where humans commit to such action but do not follow, though they firstly annotate as a \textit{truthful} message (Table~\ref{fig:lie_annotation} and Table~\ref{fig:lie_annotation_2}).
+
+% \begin{figure}[t]
+%     \centering
+%     \includegraphics[width=0.45\textwidth]{figures/success_persuasion.pdf}
+%     \caption{Success Persuasion using $Per()$ function by groups of players.}
+%     \label{fig:success_per}
+% \end{figure}
+\section{Discussion}
+\label{sec:conc}
+
+Our research confirms that \cicero{} can win most games of \textit{Diplomacy}, but has not \emph{mastered} the nuances of communication and persuasion.
+%
+Truly mastering the game requires systems that (a) can maintain
+consistency between their communication and actions, (b) can
+communicate at a variety of levels, including tactics, strategy, and
+alliances, and (c) can use communication as a tool of persuasion,
+deception, and negotiation.
+
+\textit{Diplomacy} remains an attractive testbed for communication and strategic research.
+%
+It offers the ability to build more comprehensive systems that understand relationship dynamics, can engage in realistic but hypothetical conversations, and that can be robust to the deceptions of others.
+%
+Because these are places where humans still outpace \abr{ai}, it also offers synergies for developing human--computer collaboration.
+
+And while these tasks are important withing the silly game of \textit{Diplomacy}, they can help solve long-standing \abr{ai} problems:
+%
+helping users deal with \abr{llm}-generated deception,
+%
+collaborating with users on grounded planning,
+%
+and understanding human norms of reciprocity, cooperation, and communication.
+%
+This will help \abr{ai} not just be fun for negotiation in board games but safer and more trustworthy when we negotiate everyday problems.
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
